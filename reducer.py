@@ -44,7 +44,7 @@ def create_new_model():
     return model
 
 
-def load_model(key, epoch=None):
+def load_model(key, epoch):
     logger.info("Loading model: %s/%s" % (PATH, key))
     with hdfs_client.open("%s/%s_epoch_%d.model" % (PATH, key, epoch), 'rb') as model_fd:
         model = pickle.load(model_fd)
@@ -81,20 +81,21 @@ def model_exists(key, epoch):
     return hdfs_client.exists("%s/%s_epoch_%d.model" % (PATH, key, epoch))
 
 def get_current_epoch(key):
-    for epoch in range(1, 6):
+    for epoch in range(5, 0, -1):
         if model_exists(key, epoch):
+            logger.info("Current epoch: %d" % (epoch + 1))
             return epoch + 1
 
-    return 0
+    logger.info("Current epoch: 1")
+    return 1
 
 
 key = get_key()
 current_epoch = get_current_epoch(key)
 
-if current_epoch > 0:
-    model = load_model(key, current_epoch)
+if current_epoch > 1:
+    model = load_model(key, current_epoch - 1)
 else:
-    
     model = create_new_model()
 
 
