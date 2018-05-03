@@ -107,8 +107,8 @@ def save_words_seen(key, epoch):
 
 
 def process_input():
-    global words_seens
-    cnt = 0
+    seen = defaultdict(int)
+
     for line in sys.stdin:
         line = line.rstrip()
         k, value = line.split('\t')
@@ -120,8 +120,11 @@ def process_input():
 
         tokens = value.split(' ')
         for token in tokens:
-            words_seen[token] += 1
+            seen[token] += 1
         yield tokens
+
+    global words_seen
+    words_seen = seen
 
 sentences = process_input()
 
