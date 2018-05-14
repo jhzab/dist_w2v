@@ -18,7 +18,7 @@ NUMBER_REDUCERS = 10
 max_queue_len = 100000
 epochs = 1
 CHOICES = list(range(0, NUMBER_REDUCERS))
-
+SUB_SAMPLE=0.50
 
 re_tok = re.compile('([' + string.punctuation + '“”¨«»®´·º½¾¿¡§£₤‘’])')
 whitespace = re.compile(r"^\s+$")
@@ -54,14 +54,18 @@ def remove_and_sanitize_text(text):
     text = merge_whitespace(text)
     return " ".join(remove_and_sanitize_tokens(text.split()))
 
+
 def get_keys():
     return list(filter(lambda key: True if np.random.uniform() <= SAMPLE else False, CHOICES))
 
 
-def get_at_least_one_key():
+def get_at_least_one_key(sub_sample=SUB_SAMPLE):
     keys = get_keys()
     while len(keys) == 0:
         keys = get_keys()
+
+    if sub_sample:
+        keys = np.random.choice(keys, size=int(round((len(keys))) * sub_sample))
 
     return keys
 
