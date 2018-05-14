@@ -13,6 +13,7 @@ from collections import deque
 #logger = logging.getLogger('reducer')
 #logger.setLevel("INFO")
 
+SAMPLE = 0.10
 NUMBER_REDUCERS = 10
 max_queue_len = 100000
 epochs = 1
@@ -54,7 +55,7 @@ def remove_and_sanitize_text(text):
     return " ".join(remove_and_sanitize_tokens(text.split()))
 
 def get_keys():
-    return list(filter(lambda key: True if np.random.uniform() <= 0.10 else False, CHOICES))
+    return list(filter(lambda key: True if np.random.uniform() <= SAMPLE else False, CHOICES))
 
 
 def get_at_least_one_key():
@@ -100,7 +101,7 @@ def get_data_from_json():
         paragraphs = js["par"]
         for p in paragraphs:
             p = p["text"]
-            send_from_queue()
+            #send_from_queue()
 
             normalized = remove_and_sanitize_text(p)
             yield normalized
@@ -112,7 +113,7 @@ def get_data_from_stdin():
 
 
 if __name__ == '__main__':
-    for line in get_data_from_stdin():
+    for line in get_data_from_json():
         for key in get_at_least_one_key():
             if epochs - 1 >= 1:
                 queue.append( (key, line, epochs - 1) )
