@@ -5,7 +5,7 @@ library(scales)
 
 data <- read.csv("results/wiki_alr.csv")
 
-ylabel = "Spearman's rho"
+ylabel = expression("Spearman's"~rho)
 # MEN: 0.65, 0.75
 l = c(0.65, 0.75)
 b = seq(0.65, 0.75, 0.025)
@@ -39,18 +39,17 @@ eval_name = "MEN"
 #ylabel = "Clusters Purity"
 
 # Battig
-l = c(0.4, 0.48)
-b = seq(0.4, 0.48, 0.025)
+#l = c(0.4, 0.48)
+#b = seq(0.4, 0.48, 0.025)
 #eval_name = "Battig"
 #ylabel = "Clusters Purity"
 
 # SemEval
-l = c(0.17, 0.19)
-b = seq(0.17, 0.19, 0.0125)
-eval_name = "SemEval2012_2"
-ylabel = "Clusters Purity"
+#l = c(0.17, 0.19)
+#b = seq(0.17, 0.19, 0.0125)
+#eval_name = "SemEval2012_2"
 
-data[c(1,2,3,4,5,6,7), ] %>% ggplot(aes(x=Sampling.Rate, y=SemEval2012_2)) + 
+data[c(1,2,3,4,5,6,7), ] %>% ggplot(aes(x=Sampling.Rate, y=MEN)) + 
     geom_bar(stat="identity", fill="tomato3") + 
     scale_y_continuous(breaks=b, limits=l, oob = rescale_none) + 
     theme(
