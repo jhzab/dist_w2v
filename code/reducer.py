@@ -5,6 +5,7 @@ import os
 import time
 import logging
 import pickle
+import traceback
 from collections import defaultdict
 from gensim.models import word2vec
 from pyarrow import hdfs
@@ -17,10 +18,8 @@ logger = logging.getLogger('reducer')
 logger.setLevel("INFO")
 
 dimensions=500
-PATH=f"/user/zab/w2v_wiki_{dimensions}_lr_300000"
-
+PATH=f"/user/zab/w2v_2007_{dimensions}_lr_300000_sample_0.20"
 logger.info("Initializing hdfs client")
-#hdfs_client = hdfs.connect('master.ib')
 hdfs_client = HDFileSystem('master.ib', port=8020)
 words_seen = defaultdict()
 
@@ -33,10 +32,10 @@ def set_environ():
 
 def create_new_model():
     logger.info("Loading word dictionary")
-    with open("wiki_dict_most_freq_300000","br") as dict_most_freq:
+    with open("2007_dict_most_freq_300000","br") as dict_most_freq:
         word_freq = pickle.load(dict_most_freq)
         logger.info("Finished loaded word dictionary")
-    model = word2vec.Word2Vec(size=dimensions, workers=9, iter=1, sg=1, window=10, compute_loss=True)
+    model = word2vec.Word2Vec(size=dimensions, workers=10, iter=1, sg=1, window=10, compute_loss=True, max_vocab_size=300000)
     logger.info("Building vocab from dictionary")
     model.build_vocab_from_freq(word_freq)
     logger.info("Finished building vocab")
@@ -55,23 +54,24 @@ def load_model(key, epoch):
 def save_model(model, key, epoch):
     logger.info("Saving model")
     with hdfs_client.open("%s/%s_epoch_%d.model" % (PATH, key, epoch), 'wb') as model_fd:
-        #model.save(model_fd, sep_limit=1024 * 1024, pickle_protocol=2)
         pickle.dump(model, model_fd, protocol=4)
     logger.info("Model saved :-)")
 
-    
+
 def convert_to_dict(model):
     for key in model.wv.vocab.keys():
         d = dict()
         d[key] = model.wv.get_vector(key).tolist()
         js = json.dumps(d)
         print(js)
-        
+
     return d
 
 
 def get_key():
-    # this will have to read one line of input :(
+    # we sometimes get an error if we try to get data from stdin too soon
+    # FIXME: cleaner: catch exception, sleep and try again
+    time.sleep(3)
     key, _ = next(sys.stdin).rstrip().split("\t")
     logger.info("This is model number: %s" % key)
     return key
@@ -108,20 +108,33 @@ def save_words_seen(key, epoch):
 
 def process_input():
     seen = defaultdict(int)
+    cnt = 0
+    try:
+        for line in sys.stdin:
+            line = line.rstrip('\n')
+            try:
+                k, value = line.split('\t')
+            except ValueError as e:
+                logger.error("Could not split at \\t:")
+                logger.error(tmp)
+                continue
 
-    for line in sys.stdin:
-        line = line.rstrip()
-        k, value = line.split('\t')
+            if key != k:
+                logger.error("Keys differ. key: %s k: %s" % (key, k))
+                logger.error("Line: %s" % line)
+                exit(-1)
 
-        if key != k:
-            logger.error("Keys differ. key: %s k: %s" % (key, k))
-            logger.error("Line: %s" % line)
-            exit(-1)
+            if cnt < 2:
+                cnt += 1
+                logger.error(line)
 
-        tokens = value.split(' ')
-        for token in tokens:
-            seen[token] += 1
-        yield tokens
+            tokens = value.split(' ')
+            for token in tokens:
+                seen[token] += 1
+            yield tokens
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        exit(-3)
 
     global words_seen
     words_seen = seen
@@ -130,6 +143,7 @@ sentences = process_input()
 
 logger.info("Started training")
 model.train(sentences, total_words=350000000, epochs=1)
+
 logger.info("Finished training")
 
 #convert_to_dict(model)
