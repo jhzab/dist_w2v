@@ -8,17 +8,13 @@ import re
 import numpy as np
 from collections import deque
 
-#FORMAT = '%(asctime)-15s %(message)s'
-#logging.basicConfig(format=FORMAT)
-#logger = logging.getLogger('reducer')
-#logger.setLevel("INFO")
-
-SAMPLE = 0.10
-NUMBER_REDUCERS = 10
+SAMPLE = 0.20
+NUMBER_REDUCERS = 5
 max_queue_len = 100000
 epochs = 1
 CHOICES = list(range(0, NUMBER_REDUCERS))
-SUB_SAMPLE=0.50
+# percentage to keep, set to None to keep everything
+SUB_SAMPLE=None
 
 re_tok = re.compile('([' + string.punctuation + '“”¨«»®´·º½¾¿¡§£₤‘’])')
 whitespace = re.compile(r"^\s+$")
@@ -59,13 +55,14 @@ def get_keys():
     return list(filter(lambda key: True if np.random.uniform() <= SAMPLE else False, CHOICES))
 
 
-def get_at_least_one_key(sub_sample=SUB_SAMPLE):
+def get_at_least_one_key():
+    if SUB_SAMPLE:
+        if not (np.random.uniform() <= SUB_SAMPLE):
+            return []
+
     keys = get_keys()
     while len(keys) == 0:
         keys = get_keys()
-
-    if sub_sample:
-        keys = np.random.choice(keys, size=int(round((len(keys))) * sub_sample))
 
     return keys
 
