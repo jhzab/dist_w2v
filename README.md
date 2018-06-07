@@ -17,3 +17,18 @@ required the sub sampling of the actual data.
 
 In the `reducer.py` the active hadoop namenode has to be set, as well as
 the path for the models. That path needs to exist (and be word writeable).
+The correct path vocabulary (in form of a pickled python dict) also needs
+to be given and depending on the name, also added in `execute_epochs.sh`.
+
+Before running `execute_epochs.sh` the KeyPartitioner has to be compiled
+to byte code:
+
+```
+export CLASSPATH=$(/usr/bin/hadoop classpath)
+javac KeyPartitioner.java
+```
+
+The extra partitioner is needed since the default uses the hash of the key
+modulo the number of reducers to send the data to different reducers. But
+this will generate collisions and often also result in some reducers
+getting no data at all. Depending on the configured number of reducers.
